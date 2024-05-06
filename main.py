@@ -1,34 +1,33 @@
 #!/usr/bin/env python3
 
-import streamlit as st
 import PyPDF2
 import io
 
-def remove_pdf_password(uploaded_file, password):
-    with io.BytesIO(uploaded_file.getvalue()) as f:
-        pdf_reader = PyPDF2.PdfFileReader(f)
+def remove_pdf_password(file_path, password):
+    with open(file_path, 'rb') as file:
+        pdf_reader = PyPDF2.PdfFileReader(file)
         if pdf_reader.isEncrypted:
             pdf_reader.decrypt(password)
-            return pdf_reader
+            pdf_writer = PyPDF2.PdfFileWriter()
+            for page_num in range(pdf_reader.numPages):
+                pdf_writer.addPage(pdf_reader.getPage(page_num))
+            decrypted_pdf = io.BytesIO()
+            pdf_writer.write(decrypted_pdf)
+            decrypted_pdf.seek(0)
+            return decrypted_pdf
         else:
             return None
 
-st.title("PDF Password Remover")
+if __name__ == "__main__":
+    file_path = input("Ingrese la ruta del archivo PDF encriptado: ")
+    password = input("Ingrese la contraseña del PDF: ")
 
-uploaded_file = st.file_uploader("Carga el PDF con contraseña", type="pdf")
+    decrypted_pdf = remove_pdf_password(file_path, password)
 
-if uploaded_file is not None:
-    password = st.text_input("Introduce la contraseña del PDF")
-    if st.button("Eliminar contraseña"):
-        try:
-            pdf_reader = remove_pdf_password(uploaded_file, password)
-            if pdf_reader is not None:
-                st.success("Contraseña eliminada con éxito.")
-                st.write("Aquí está el contenido del PDF:")
-                for page_num in range(pdf_reader.numPages):
-                    page = pdf_reader.getPage(page_num)
-                    st.write(page.extractText())
-            else:
-                st.error("El PDF no tiene contraseña o la contraseña proporcionada es incorrecta.")
-        except PyPDF2.PdfReadError:
-            st.error("Se produjo un error al leer el PDF. Asegúrate de que el archivo es un PDF válido.")
+    if decrypted_pdf is not None:
+        output_file_path = input("Ingrese la ruta de salida para el PDF desencriptado: ")
+        with open(output_file_path, 'wb') as output_file:
+            output_file.write(decrypted_pdf.read())
+        print("El PDF ha sido desencriptado con éxito.")
+    else:
+        print("El PDF no está encriptado o la contraseña proporcionada es incorrecta.")
