@@ -5,12 +5,13 @@ import PyPDF2
 import io
 
 def remove_pdf_password(uploaded_file, password):
-    pdf_reader = PyPDF2.PdfFileReader(uploaded_file)
-    if pdf_reader.isEncrypted:
-        pdf_reader.decrypt(password)
-        return pdf_reader
-    else:
-        return None
+    with io.BytesIO(uploaded_file.getvalue()) as f:
+        pdf_reader = PyPDF2.PdfFileReader(f)
+        if pdf_reader.isEncrypted:
+            pdf_reader.decrypt(password)
+            return pdf_reader
+        else:
+            return None
 
 st.title("PDF Password Remover")
 
